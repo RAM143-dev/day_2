@@ -1,0 +1,43 @@
+pipeline {
+    agent any
+
+    triggers {
+        pollSCM('* * * * *')
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                bat 'docker build -t mydjango:latest .'
+            }
+        }
+
+        stage('Test') {
+            steps {
+                bat 'docker run --rm mydjango:latest python manage.py test'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                bat 'docker rm -f mydjango || exit /b 0'
+                bat 'docker run -d --name mydjango -p 8000:8000 mydjango:latest'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline succeeded. App is live on http://localhost:8000'
+        }
+        failure {
+            echo 'Pipeline failed. Check the stage logs.'
+        }
+    }
+}
